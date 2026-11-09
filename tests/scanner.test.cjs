@@ -96,3 +96,23 @@ test('an OCR worker resolving after cancellation is terminated without harming a
   assert.equal(oldWorker.stopped, true); assert.equal(newWorker.stopped, false); assert.equal(scanner.state().active, true);
   scanner.stop(); await newRun; assert.equal(newWorker.stopped, true);
 });
+
+
+test('Tesseract v5 receives Korean and English as separate language codes', async () => {
+  let languageCodes, engineMode;
+  const f = fixture({
+    camera: async () => stream(),
+    worker: async (langs, oem) => {
+      languageCodes = Array.from(langs);
+      engineMode = oem;
+      return worker();
+    }
+  });
+  const scanner = f.api.create({});
+  const active = scanner.start();
+  await tick(); await tick();
+  assert.deepEqual(languageCodes, ['kor', 'eng']);
+  assert.equal(engineMode, 1);
+  scanner.stop();
+  await active;
+});

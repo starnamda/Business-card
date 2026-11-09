@@ -201,7 +201,7 @@
         let pending;
         let abandoned = false;
         try {
-          pending = Promise.resolve(library.createWorker('kor+eng', 1, config));
+          pending = Promise.resolve(library.createWorker(['kor', 'eng'], 1, config));
           pending.then(worker => { if (abandoned || !alive(session)) terminate(worker); }, () => {});
           const worker = await bounded(Promise.race([pending, workerFailure]), attempt ? 35000 : 45000, session.controller.signal, '언어 자료 준비 시간이 초과됐습니다. 인터넷 연결을 확인해 주세요.');
           if (!alive(session)) { terminate(worker); throw cancelled(); }
