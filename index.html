@@ -187,7 +187,7 @@ async function startLiveScan(){
    while(activeScan&&cameraStream){
      if(video.readyState<2||!video.videoWidth){await new Promise(r=>setTimeout(r,350));continue;}
      const w=video.videoWidth,h=video.videoHeight;
-     const cropW=Math.min(w*.87,h*1.65),cropH=cropW/1.76;
+     const stage=video.closest('.video-stage');const scale=Math.max(stage.clientWidth/w,stage.clientHeight/h);const cropW=Math.min(w*.95,stage.clientWidth*.90/scale),cropH=Math.min(h*.85,cropW/1.76);
      const sx=(w-cropW)/2,sy=(h-cropH)/2;
      canvas.width=Math.max(1,Math.round(cropW));canvas.height=Math.max(1,Math.round(cropH));
      ctx.drawImage(video,sx,sy,cropW,cropH,0,0,canvas.width,canvas.height);
