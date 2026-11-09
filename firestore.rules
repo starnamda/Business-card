@@ -1,16 +1,28 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /users/{userId}/cards/{cardId} {
-      allow read, delete: if request.auth != null && request.auth.uid == userId;
-      allow create, update: if request.auth != null
-        && request.auth.uid == userId
-        && request.resource.data.keys().hasOnly(['id','name','company','title','phone','email','memo','photo'])
-        && request.resource.data.id == cardId
-        && request.resource.data.name is string
-        && request.resource.data.name.size() <= 100
-        && request.resource.data.photo is string
-        && request.resource.data.photo.size() <= 500000;
+    function owns(userId) {
+      return request.auth != null && request.auth.uid == userId;
     }
+
+    function validCard(cardId) {
+      let card = request.resource.data;
+      return card.keys().hasAll(['id', 'name', 'company', 'title', 'phone', 'email', 'memo', 'photo'])
+        && card.keys().hasOnly(['id', 'name', 'company', 'title', 'phone', 'email', 'memo', 'photo'])
+        && card.id is string && card.id == cardId && card.id.size() <= 255
+        && card.name is string && card.name.size() > 0 && card.name.size() <= 100
+        && card.company is string && card.company.size() <= 150
+        && card.title is string && card.title.size() <= 100
+        && card.phone is string && card.phone.size() <= 60
+        && card.email is string && card.email.size() <= 150
+        && card.memo is string && card.memo.size() <= 2000
+        && card.photo is string && card.photo.size() <= 500000;
+    }
+
+    match /users/{userId}/cards/{cardId} {
+      allow read, delete: if owns(userId);
+      allow create, update: if owns(userId) && validCard(cardId);
+    }
+    // All unmatched paths remain denied.
   }
 }
