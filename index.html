@@ -54,10 +54,15 @@ button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible{
 #toast{position:fixed;left:50%;bottom:35px;transform:translateX(-50%);background:#152d55;color:#fff;padding:14px 20px;border-radius:12px;box-shadow:0 10px 26px #00183f30;z-index:50;font-size:13px;max-width:90vw}
 .footer{text-align:center;font-size:11px;color:#8d99aa;margin:35px 0}
 @media(max-width:650px){.bar-inner{padding:14px 18px}.brand{font-size:17px}.subtitle{font-size:11px}.shell{padding:14px 14px 100px}.hero{padding:23px 21px;display:block}.hero h1{font-size:23px}.hero .btn{margin-top:19px;width:100%}.nav{position:fixed;bottom:0;left:0;right:0;z-index:20;background:white;border-top:1px solid #e6ebf3;box-shadow:0 -5px 18px #132b4708;margin:0;padding:8px 10px max(8px,env(safe-area-inset-bottom));justify-content:space-around}.nav-item{flex:1;min-width:0;min-height:56px;flex-direction:column;gap:4px;font-size:11px;padding:6px 3px;border-radius:12px}.nav-item svg{width:20px;height:20px}.panel{padding:20px 17px}.two-col{grid-template-columns:1fr}.grid{grid-template-columns:1fr}.card-actions .btn{min-height:43px}.section-heading{align-items:flex-start}.footer{margin-top:20px}#toast{bottom:93px}}
+
+.account{display:flex;align-items:center;gap:9px;margin-left:auto;flex-wrap:wrap;justify-content:flex-end}
+.account-status{font-size:12px;color:#6e7e94;text-align:right;max-width:190px;overflow-wrap:anywhere}
+.account .btn{min-width:100px;min-height:40px;padding:9px 12px;font-size:12px}
+@media(max-width:650px){.bar-inner{flex-wrap:wrap}.account{flex-basis:100%;justify-content:flex-start;margin:5px 0 0}.account-status{text-align:left;flex:1}}
 </style>
 </head>
 <body>
-<header class="topbar"><div class="bar-inner"><div class="mark" aria-hidden="true">N</div><div><div class="brand">NAMDA <span>AI 네트워크</span></div><div class="subtitle">대표이사 네트워크 인프라 · 스마트 명함첩</div></div></div></header>
+<header class="topbar"><div class="bar-inner"><div class="mark" aria-hidden="true">N</div><div><div class="brand">NAMDA <span>AI 네트워크</span></div><div class="subtitle">대표이사 네트워크 인프라 · 스마트 명함첩</div></div><div class="account"><span class="account-status" id="accountStatus">기기 내 저장 · 로그인 설정 필요</span><button type="button" class="btn btn-primary" id="loginBtn">Google 로그인</button><button type="button" class="btn btn-outline" id="logoutBtn" hidden>로그아웃</button></div></div></header>
 <div class="shell">
 <nav class="nav" id="nav" aria-label="주요 메뉴">
 <button type="button" class="nav-item" data-view="contacts" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="5" width="18" height="14" rx="3"/><circle cx="9" cy="11" r="2"/><path d="M6 16c0-3 6-3 6 0M15 10h4M15 14h4"/></svg>명함첩</button>
@@ -76,19 +81,20 @@ button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible{
 <div class="scan-box"><div class="scan-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M3 7h4l2-3h6l2 3h4v13H3z"/><circle cx="12" cy="13" r="4"/></svg></div><h2>명함을 찍으면 자동으로 인식해요</h2><p>한국어·영어 명함 인식 · 저장 후 언제든 수정 가능</p><button type="button" class="btn btn-primary" id="cameraBtn">명함 촬영 · 자동 등록</button><input type="file" id="photo" accept="image/*" capture="environment"><div id="ocrStatus" class="scan-state" role="status" aria-live="polite">카메라를 누르거나 사진을 선택할 수 있습니다.</div></div>
 <button type="button" class="btn btn-outline" id="toggleManual" aria-expanded="false">직접 입력하기</button>
 <div id="manualWrap" hidden><form id="form" autocomplete="on"><input type="hidden" id="id"><div class="two-col"><div class="field"><label for="name">이름 *</label><input id="name" required maxlength="100" autocomplete="name"></div><div class="field"><label for="company">회사</label><input id="company" maxlength="150" autocomplete="organization"></div><div class="field"><label for="title">직책</label><input id="title" maxlength="100" autocomplete="organization-title"></div><div class="field"><label for="phone">전화번호</label><input id="phone" type="tel" maxlength="60" autocomplete="tel"></div></div><div class="field"><label for="email">이메일</label><input id="email" type="email" maxlength="150" autocomplete="email"></div><div class="field"><label for="memo">메모</label><textarea id="memo" rows="3" maxlength="2000"></textarea></div><div class="form-footer"><button type="submit" class="btn btn-primary" id="saveBtn">명함 저장</button><button type="button" id="cancelEdit" class="btn btn-soft">취소</button></div></form></div>
-<div class="notice">안내: 현재는 이 브라우저에만 저장됩니다. 구글 로그인이나 여러 기기 동기화는 아직 제공되지 않습니다.</div></div>
+<div class="notice">안내: 구글 로그인 전 명함은 이 기기의 브라우저에만 저장됩니다. 로그인 후에는 해당 계정의 별도 클라우드 명함첩이 표시됩니다. 기존 로컬 명함은 자동 업로드하지 않습니다.</div></div>
 </section>
 <section class="view" id="view-data" hidden>
 <div class="panel"><h2>데이터 관리</h2><p class="desc">백업과 연락처 내보내기를 이 화면에서 관리합니다.</p>
 <div class="action-row"><div><strong>연락처 내보내기</strong><p>휴대폰 주소록에서 불러올 수 있는 VCF 파일</p></div><button type="button" class="btn btn-primary" id="vcardAll">VCF 내보내기</button></div>
 <div class="action-row"><div><strong>전체 데이터 백업</strong><p>명함 정보와 이미지가 포함된 JSON 파일</p></div><button type="button" class="btn btn-soft" id="export">JSON 백업</button></div>
 <div class="action-row"><div><strong>백업 파일 복원</strong><p>현재 저장된 명함이 백업 내용으로 교체됩니다.</p></div><button type="button" class="btn btn-outline" id="importBtn">JSON 복원</button><input id="import" type="file" accept=".json,application/json" hidden></div>
-<div class="notice"><strong>저장 및 보안 안내</strong><br>현재 데이터는 로그인 계정별로 분리되지 않습니다. 이 기기의 브라우저 저장소에만 보관되며 브라우저 데이터 삭제 시 사라질 수 있으니 정기적으로 백업하세요. Google 로그인·클라우드 저장은 별도로 구현해야 합니다.</div>
+<div class="notice"><strong>저장 및 보안 안내</strong><br>로그인 전 명함은 이 기기에만 저장됩니다. Google 로그인 활성화 후 등록하는 명함은 로그인 계정별로 별도 저장됩니다. 계정 설정이 완료되기 전에는 로그인할 수 없습니다. 기존 명함은 먼저 JSON 백업하세요.</div>
 </div>
 </section>
 </main><footer class="footer">NAMDA AI NETWORK · 개인정보를 포함한 명함 자료는 신중하게 관리하세요.</footer></div>
 <div id="toast" role="status" aria-live="polite" hidden></div>
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+<script src="./firebase-config.js"></script>
 <script>
 (function(){
 'use strict';
@@ -96,6 +102,7 @@ const KEY='namda_business_cards_v1';
 const $=id=>document.getElementById(id);
 const fields=['name','company','title','phone','email','memo'];
 let records=[];
+let signedInUser=null;
 let photoData='';
 let busy=false;
 try{const parsed=JSON.parse(localStorage.getItem(KEY)||'[]');if(Array.isArray(parsed))records=parsed.filter(x=>x&&typeof x.name==='string');}catch(e){console.warn('Local data parse failed',e);}
@@ -111,7 +118,7 @@ function download(content,name,type){const url=URL.createObjectURL(new Blob([con
 function vcEsc(v){return clean(v).replace(/\\/g,'\\\\').replace(/\n/g,'\\n').replace(/;/g,'\\;').replace(/,/g,'\\,');}
 function vcard(x){const lines=['BEGIN:VCARD','VERSION:3.0','FN:'+vcEsc(x.name)];if(x.company)lines.push('ORG:'+vcEsc(x.company));if(x.title)lines.push('TITLE:'+vcEsc(x.title));if(x.phone)lines.push('TEL;TYPE=CELL:'+vcEsc(x.phone));if(x.email)lines.push('EMAIL:'+vcEsc(x.email));if(x.memo)lines.push('NOTE:'+vcEsc(x.memo));lines.push('END:VCARD');return lines.join('\r\n')+'\r\n';}
 function duplicate(item){const number=normalizePhone(item.phone);const email=clean(item.email).trim().toLowerCase();return records.find(x=>x.id!==item.id&&((number&&normalizePhone(x.phone)===number)||(email&&clean(x.email).trim().toLowerCase()===email)));}
-function storeItem(item,ask){const old=records.slice();const d=duplicate(item);if(d&&ask&&!confirm('동일한 연락처가 '+d.name+' 이름으로 이미 있습니다. 계속 저장할까요?'))return false;if(d&&!ask){toast('이미 등록된 연락처입니다: '+d.name);show('contacts');return false;}records=[item,...records.filter(x=>x.id!==item.id)];if(!save()){records=old;return false;}render();return true;}
+async function storeItem(item,ask){const old=records.slice();const d=duplicate(item);if(d&&ask&&!confirm('동일한 연락처가 '+d.name+' 이름으로 이미 있습니다. 계속 저장할까요?'))return false;if(d&&!ask){toast('이미 등록된 연락처입니다: '+d.name);show('contacts');return false;}if(signedInUser){try{await window.NAMDA_AUTH.putCard(item);}catch(error){toast('클라우드 저장 실패: '+error.message);return false;}records=[item,...records.filter(x=>x.id!==item.id)];render();return true;}records=[item,...records.filter(x=>x.id!==item.id)];if(!save()){records=old;return false;}render();return true;}
 function node(tag,cl,txt){const e=document.createElement(tag);if(cl)e.className=cl;if(txt!==undefined)e.textContent=clean(txt);return e;}
 function action(label,kind,callback){const btn=node('button','btn '+kind+' btn-small',label);btn.type='button';btn.addEventListener('click',callback);return btn;}
 function makeCard(x){
@@ -126,26 +133,45 @@ actions.append(action('더보기','btn-outline',()=>more.hidden=!more.hidden));i
 const more=node('div','card-more');more.hidden=true;
 if(x.email&&x.phone){const email=node('a','btn btn-soft btn-small','이메일');email.href='mailto:'+x.email;more.append(email);}
 more.append(action('연락처 저장','btn-soft',()=>download(vcard(x),(x.name||'contact').replace(/[\\/:*?"<>|]/g,'_')+'.vcf','text/vcard;charset=utf-8')));
-more.append(action('삭제','btn-danger',()=>{if(!confirm(x.name+' 명함을 삭제할까요?'))return;const old=records.slice();records=records.filter(y=>y.id!==x.id);if(!save())records=old;render();}));item.append(more);return item;
+more.append(action('삭제','btn-danger',async()=>{if(!confirm(x.name+' 명함을 삭제할까요?'))return;if(signedInUser){try{await window.NAMDA_AUTH.removeCard(x.id);}catch(err){toast('삭제 실패: '+err.message);return;}records=records.filter(y=>y.id!==x.id);render();return;}const old=records.slice();records=records.filter(y=>y.id!==x.id);if(!save())records=old;render();}));item.append(more);return item;
 }
-function render(){const q=$('search').value.trim().toLowerCase();const found=records.filter(x=>fields.some(k=>clean(x[k]).toLowerCase().includes(q)));$('count').textContent=found.length+'명';const grid=$('cards');grid.replaceChildren(...found.map(makeCard));$('empty').hidden=found.length>0;$('emptyTitle').textContent=q?'검색 결과가 없어요':'아직 등록된 명함이 없어요';$('emptySubtitle').textContent=q?'다른 이름이나 회사로 검색해 보세요.':'명함 촬영 버튼으로 첫 명함을 등록하세요.';}
+function render(){const q=$('search').value.trim().toLowerCase();const found=records.filter(x=>fields.some(k=>clean(x[k]).toLowerCase().includes(q))).sort((a,b)=>new Intl.Collator('ko-KR',{numeric:true,sensitivity:'base'}).compare(clean(a.name).replace(/\s/g,''),clean(b.name).replace(/\s/g,'')));$('count').textContent=found.length+'명';const grid=$('cards');grid.replaceChildren(...found.map(makeCard));$('empty').hidden=found.length>0;$('emptyTitle').textContent=q?'검색 결과가 없어요':'아직 등록된 명함이 없어요';$('emptySubtitle').textContent=q?'다른 이름이나 회사로 검색해 보세요.':'명함 촬영 버튼으로 첫 명함을 등록하세요.';}
 $('search').addEventListener('input',render);
 $('toggleManual').addEventListener('click',()=>expandManual($('manualWrap').hidden));
 $('newRecord').addEventListener('click',()=>{resetForm();toast('새 명함을 입력할 수 있습니다.');});
 $('cancelEdit').addEventListener('click',()=>{resetForm();show('contacts');});
-$('form').addEventListener('submit',e=>{e.preventDefault();const existingId=$('id').value;const item={id:existingId||crypto.randomUUID(),...Object.fromEntries(fields.map(k=>[k,$(k).value.trim()])),photo:photoData};if(!item.name){toast('이름을 입력해 주세요.');return;}if(storeItem(item,true)){resetForm();toast('명함이 저장되었습니다.');show('contacts');}});
+$('form').addEventListener('submit',async e=>{e.preventDefault();const existingId=$('id').value;const item={id:existingId||crypto.randomUUID(),...Object.fromEntries(fields.map(k=>[k,$(k).value.trim()])),photo:photoData};if(!item.name){toast('이름을 입력해 주세요.');return;}if(await storeItem(item,true)){resetForm();toast('명함이 저장되었습니다.');show('contacts');}});
 function photoToData(file){return new Promise((resolve,reject)=>{const img=new Image();const url=URL.createObjectURL(file);img.onload=()=>{try{const scale=Math.min(1,1000/Math.max(img.width,img.height));const canvas=document.createElement('canvas');canvas.width=Math.max(1,Math.round(img.width*scale));canvas.height=Math.max(1,Math.round(img.height*scale));canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height);resolve(canvas.toDataURL('image/jpeg',.68));}catch(e){reject(e);}finally{URL.revokeObjectURL(url);}};img.onerror=()=>{URL.revokeObjectURL(url);reject(new Error('사진 열기 실패'));};img.src=url;});}
 function parseText(text){const lines=clean(text).split(/\r?\n/).map(s=>s.trim()).filter(Boolean);const email=text.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i)?.[0]||'';const phone=text.match(/(?:\+?82[\s.-]?)?0?1[016789][\s.-]?\d{3,4}[\s.-]?\d{4}|0\d{1,2}[\s.-]?\d{3,4}[\s.-]?\d{4}/)?.[0]||'';const filtered=lines.filter(l=>l!==email&&!l.includes(email||'@@')&&!l.includes(phone||'@@')&&!/^(?:www\.|https?:\/\/)/i.test(l));const name=filtered.find(x=>/^[가-힣]{2,5}$/.test(x))||filtered.find(x=>/^[A-Za-z ]{3,28}$/.test(x))||filtered[0]||'';const company=filtered.find(x=>x!==name&&/(주식회사|㈜|회사|그룹|법인|co\.|corp|inc\.|ltd|namda)/i.test(x))||'';return {name,company,phone,email,memo:'명함 인식 원문:\n'+text.slice(0,1200)};}
-async function scan(file){if(!file||busy)return;if(!file.type.startsWith('image/')){toast('이미지 파일을 선택해 주세요.');return;}if(file.size>15*1024*1024){toast('사진은 15MB 이하만 등록할 수 있습니다.');return;}busy=true;const button=$('cameraBtn');button.disabled=true;const status=$('ocrStatus');status.textContent='사진을 읽고 있습니다…';let compressed='';try{compressed=await photoToData(file);if(!window.Tesseract)throw new Error('OCR module missing');status.textContent='한국어·영어 문자를 인식하고 있습니다…';const worker=await Tesseract.createWorker('kor+eng');let result;try{result=await worker.recognize(file);}finally{await worker.terminate();}const parsed=parseText(result.data.text||'');if(!parsed.name||!result.data.text.trim())throw new Error('No recognizable text');const item={id:crypto.randomUUID(),name:parsed.name,company:parsed.company,title:'',phone:parsed.phone,email:parsed.email,memo:parsed.memo,photo:compressed};if(storeItem(item,false)){resetForm();status.textContent='명함이 등록되었습니다.';toast('명함 인식 및 저장 완료 · 이름과 연락처를 확인해 주세요.');show('contacts');}}catch(e){console.error(e);status.textContent='자동 인식에 실패했습니다. 직접 입력하여 저장할 수 있습니다.';photoData=compressed;expandManual(true);toast('글자를 읽지 못했어요. 직접 입력해 주세요.');}finally{busy=false;button.disabled=false;$('photo').value='';}}
+async function scan(file){if(!file||busy)return;if(!file.type.startsWith('image/')){toast('이미지 파일을 선택해 주세요.');return;}if(file.size>15*1024*1024){toast('사진은 15MB 이하만 등록할 수 있습니다.');return;}busy=true;const button=$('cameraBtn');button.disabled=true;const status=$('ocrStatus');status.textContent='사진을 읽고 있습니다…';let compressed='';try{compressed=await photoToData(file);if(!window.Tesseract)throw new Error('OCR module missing');status.textContent='한국어·영어 문자를 인식하고 있습니다…';const worker=await Tesseract.createWorker('kor+eng');let result;try{result=await worker.recognize(file);}finally{await worker.terminate();}const parsed=parseText(result.data.text||'');if(!parsed.name||!result.data.text.trim())throw new Error('No recognizable text');const item={id:crypto.randomUUID(),name:parsed.name,company:parsed.company,title:'',phone:parsed.phone,email:parsed.email,memo:parsed.memo,photo:compressed};if(await storeItem(item,false)){resetForm();status.textContent='명함이 등록되었습니다.';toast('명함 인식 및 저장 완료 · 이름과 연락처를 확인해 주세요.');show('contacts');}}catch(e){console.error(e);status.textContent='자동 인식에 실패했습니다. 직접 입력하여 저장할 수 있습니다.';photoData=compressed;expandManual(true);toast('글자를 읽지 못했어요. 직접 입력해 주세요.');}finally{busy=false;button.disabled=false;$('photo').value='';}}
 $('cameraBtn').addEventListener('click',()=>$('photo').click());
 $('heroCamera').addEventListener('click',()=>{resetForm();show('register');$('photo').click();});
 $('photo').addEventListener('change',e=>scan(e.target.files[0]));
 $('export').addEventListener('click',()=>download(JSON.stringify(records,null,2),'namda-cards-backup.json','application/json;charset=utf-8'));
 $('vcardAll').addEventListener('click',()=>{if(!records.length){toast('내보낼 명함이 없습니다.');return;}download(records.map(vcard).join('\r\n'),'namda-contacts.vcf','text/vcard;charset=utf-8');});
-$('importBtn').addEventListener('click',()=>$('import').click());
+$('importBtn').addEventListener('click',()=>{if(signedInUser){toast('클라우드 명함첩은 현재 JSON 복원을 지원하지 않습니다.');return;}$('import').click();});
 $('import').addEventListener('change',async e=>{const file=e.target.files[0];if(!file)return;try{if(file.size>15*1024*1024)throw new Error('Too large');const parsed=JSON.parse(await file.text());if(!Array.isArray(parsed)||!parsed.every(x=>x&&typeof x.name==='string'))throw new Error('Invalid content');if(!confirm('현재 명함 '+records.length+'개를 백업의 '+parsed.length+'개로 교체할까요? 먼저 JSON 백업을 권장합니다.'))return;const next=parsed.map(x=>({id:crypto.randomUUID(),...Object.fromEntries(fields.map(k=>[k,clean(x[k]).slice(0,k==='memo'?2000:160)])),photo:typeof x.photo==='string'&&/^data:image\/(jpeg|png|webp);base64,/i.test(x.photo)?x.photo:''}));const old=records;records=next;if(!save()){records=old;return;}render();toast('백업을 복원했습니다.');show('contacts');}catch(e){toast('올바른 JSON 백업 파일이 아닙니다.');}finally{$('import').value='';}});
+function accountChanged(user){
+ signedInUser=user;
+ const label=$('accountStatus');
+ $('loginBtn').hidden=!!user;
+ $('logoutBtn').hidden=!user;
+ label.textContent=user?(user.displayName||user.email||'Google 계정')+' · 개인 명함첩':'기기 내 저장 · 로그인하지 않음';
+ if(user){records=[];}else{try{const local=JSON.parse(localStorage.getItem(KEY)||'[]');records=Array.isArray(local)?local:[];}catch{records=[];}}
+ render();show('contacts');
+}
+window.addEventListener('namda-auth-state',e=>accountChanged(e.detail.user));
+window.addEventListener('namda-cloud-cards',e=>{if(!signedInUser)return;records=Array.isArray(e.detail.cards)?e.detail.cards:[];render();});
+window.addEventListener('namda-auth-error',e=>toast('Google 로그인 또는 동기화 오류: '+e.detail.message));
+window.addEventListener('namda-auth-unavailable',e=>{$('accountStatus').textContent='Google 로그인 설정 필요';$('loginBtn').title=e.detail.reason;});
+$('loginBtn').addEventListener('click',async()=>{
+ if(!window.NAMDA_AUTH?.available){toast('Google 로그인 설정이 아직 없습니다. Firebase 연결이 필요합니다.');return;}
+ try{await window.NAMDA_AUTH.signIn();}catch(err){toast('로그인 실패: '+err.message);}
+});
+$('logoutBtn').addEventListener('click',async()=>{try{await window.NAMDA_AUTH.signOut();}catch(e){toast('로그아웃 실패: '+e.message);}});
 render();show('contacts');
 })();
 </script>
+<script type="module" src="./auth.js"></script>
 </body>
 </html>
