@@ -59,6 +59,13 @@ button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible{
 .account-status{font-size:12px;color:#6e7e94;text-align:right;max-width:190px;overflow-wrap:anywhere}
 .account .btn{min-width:100px;min-height:40px;padding:9px 12px;font-size:12px}
 @media(max-width:650px){.bar-inner{flex-wrap:wrap}.account{flex-basis:100%;justify-content:flex-start;margin:5px 0 0}.account-status{text-align:left;flex:1}}
+
+.live-cam{margin:14px auto 16px;max-width:600px}.video-stage{position:relative;overflow:hidden;border-radius:19px;background:#142238;aspect-ratio:4/3}
+.video-stage video{width:100%;height:100%;object-fit:cover;display:block}
+.scan-guide{position:absolute;width:88%;aspect-ratio:1.76;max-height:68%;border:3px solid #8de8cf;border-radius:12px;top:50%;left:50%;transform:translate(-50%,-50%);box-shadow:0 0 0 100vmax #0c1d3b48,inset 0 0 15px #0002;pointer-events:none}
+.live-hint{font-size:12px;color:#486484;margin:10px 0 13px;line-height:1.5}
+.live-controls{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+@media(max-width:650px){.video-stage{aspect-ratio:3/4}.scan-guide{width:92%;max-height:50%}}
 </style>
 </head>
 <body>
@@ -78,7 +85,15 @@ button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible{
 </section>
 <section class="view" id="view-register" hidden>
 <div class="panel"><div class="section-heading"><h2 id="registerTitle">새 명함 등록</h2><button id="newRecord" class="btn btn-soft btn-small" type="button">초기화</button></div><p class="desc">사진으로 바로 등록하거나 필요한 정보를 직접 입력하세요.</p>
-<div class="scan-box"><div class="scan-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M3 7h4l2-3h6l2 3h4v13H3z"/><circle cx="12" cy="13" r="4"/></svg></div><h2>명함을 찍으면 자동으로 인식해요</h2><p>한국어·영어 명함 인식 · 저장 후 언제든 수정 가능</p><button type="button" class="btn btn-primary" id="cameraBtn">명함 촬영 · 자동 등록</button><input type="file" id="photo" accept="image/*" capture="environment"><div id="ocrStatus" class="scan-state" role="status" aria-live="polite">카메라를 누르거나 사진을 선택할 수 있습니다.</div></div>
+<div class="scan-box"><div class="scan-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M3 7h4l2-3h6l2 3h4v13H3z"/><circle cx="12" cy="13" r="4"/></svg></div><h2>명함을 틀 안에 맞추면 자동으로 인식해요</h2><p>카메라를 시작하고 명함을 가이드 안에 대면 자동으로 읽고 저장합니다.</p>
+<button type="button" class="btn btn-primary" id="cameraBtn">카메라 자동 스캔 시작</button>
+<button type="button" class="btn btn-outline" id="galleryBtn">저장된 명함 사진 불러오기</button>
+<input type="file" id="photo" accept="image/*">
+<div id="liveCam" class="live-cam" hidden>
+<div class="video-stage"><video id="liveVideo" autoplay muted playsinline></video><div class="scan-guide" aria-hidden="true"></div></div>
+<div id="liveStatus" class="live-hint" role="status" aria-live="polite">명함을 틀 안에 맞춰 주세요. 자동으로 인식합니다.</div>
+<div class="live-controls"><button type="button" class="btn btn-soft" id="stopLive">스캔 종료</button></div></div>
+<div id="ocrStatus" class="scan-state" role="status" aria-live="polite">카메라 사용 권한은 처음 실행할 때 필요합니다.</div></div>
 <button type="button" class="btn btn-outline" id="toggleManual" aria-expanded="false">직접 입력하기</button>
 <div id="manualWrap" hidden><form id="form" autocomplete="on"><input type="hidden" id="id"><div class="two-col"><div class="field"><label for="name">이름 *</label><input id="name" required maxlength="100" autocomplete="name"></div><div class="field"><label for="company">회사</label><input id="company" maxlength="150" autocomplete="organization"></div><div class="field"><label for="title">직책</label><input id="title" maxlength="100" autocomplete="organization-title"></div><div class="field"><label for="phone">전화번호</label><input id="phone" type="tel" maxlength="60" autocomplete="tel"></div></div><div class="field"><label for="email">이메일</label><input id="email" type="email" maxlength="150" autocomplete="email"></div><div class="field"><label for="memo">메모</label><textarea id="memo" rows="3" maxlength="2000"></textarea></div><div class="form-footer"><button type="submit" class="btn btn-primary" id="saveBtn">명함 저장</button><button type="button" id="cancelEdit" class="btn btn-soft">취소</button></div></form></div>
 <div class="notice">안내: 구글 로그인 전 명함은 이 기기의 브라우저에만 저장됩니다. 로그인 후에는 해당 계정의 별도 클라우드 명함첩이 표시됩니다. 기존 로컬 명함은 자동 업로드하지 않습니다.</div></div>
@@ -105,15 +120,18 @@ let records=[];
 let signedInUser=null;
 let photoData='';
 let busy=false;
+let cameraStream=null;
+let activeScan=false;
+let liveWorker=null;
 try{const parsed=JSON.parse(localStorage.getItem(KEY)||'[]');if(Array.isArray(parsed))records=parsed.filter(x=>x&&typeof x.name==='string');}catch(e){console.warn('Local data parse failed',e);}
 const clean=v=>String(v==null?'':v);
 const normalizePhone=s=>clean(s).replace(/[^0-9]/g,'');
 function toast(message){const t=$('toast');t.textContent=message;t.hidden=false;clearTimeout(toast.timer);toast.timer=setTimeout(()=>t.hidden=true,4000);}
 function save(){try{localStorage.setItem(KEY,JSON.stringify(records));return true;}catch(e){toast('저장 공간이 부족합니다. 데이터 관리에서 백업해 주세요.');return false;}}
-function show(view){for(const btn of document.querySelectorAll('[data-view]')){if(btn.dataset.view===view)btn.setAttribute('aria-current','page');else btn.removeAttribute('aria-current');}for(const section of document.querySelectorAll('section.view'))section.hidden=section.id!=='view-'+view;window.scrollTo({top:0,behavior:'instant'});}
+function show(view){if(view!=='register')stopLiveScan();for(const btn of document.querySelectorAll('[data-view]')){if(btn.dataset.view===view)btn.setAttribute('aria-current','page');else btn.removeAttribute('aria-current');}for(const section of document.querySelectorAll('section.view'))section.hidden=section.id!=='view-'+view;window.scrollTo({top:0,behavior:'instant'});}
 document.querySelectorAll('[data-view]').forEach(btn=>btn.addEventListener('click',()=>show(btn.dataset.view)));
 function expandManual(open){$('manualWrap').hidden=!open;$('toggleManual').setAttribute('aria-expanded',String(open));$('toggleManual').textContent=open?'입력창 접기':'직접 입력하기';}
-function resetForm(){ $('form').reset();$('id').value='';photoData='';$('registerTitle').textContent='새 명함 등록';$('saveBtn').textContent='명함 저장';expandManual(false);}
+function resetForm(){stopLiveScan(); $('form').reset();$('id').value='';photoData='';$('registerTitle').textContent='새 명함 등록';$('saveBtn').textContent='명함 저장';expandManual(false);}
 function download(content,name,type){const url=URL.createObjectURL(new Blob([content],{type}));const a=document.createElement('a');a.href=url;a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),2000);}
 function vcEsc(v){return clean(v).replace(/\\/g,'\\\\').replace(/\n/g,'\\n').replace(/;/g,'\\;').replace(/,/g,'\\,');}
 function vcard(x){const lines=['BEGIN:VCARD','VERSION:3.0','FN:'+vcEsc(x.name)];if(x.company)lines.push('ORG:'+vcEsc(x.company));if(x.title)lines.push('TITLE:'+vcEsc(x.title));if(x.phone)lines.push('TEL;TYPE=CELL:'+vcEsc(x.phone));if(x.email)lines.push('EMAIL:'+vcEsc(x.email));if(x.memo)lines.push('NOTE:'+vcEsc(x.memo));lines.push('END:VCARD');return lines.join('\r\n')+'\r\n';}
@@ -144,8 +162,68 @@ $('form').addEventListener('submit',async e=>{e.preventDefault();const existingI
 function photoToData(file){return new Promise((resolve,reject)=>{const img=new Image();const url=URL.createObjectURL(file);img.onload=()=>{try{const scale=Math.min(1,1000/Math.max(img.width,img.height));const canvas=document.createElement('canvas');canvas.width=Math.max(1,Math.round(img.width*scale));canvas.height=Math.max(1,Math.round(img.height*scale));canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height);resolve(canvas.toDataURL('image/jpeg',.68));}catch(e){reject(e);}finally{URL.revokeObjectURL(url);}};img.onerror=()=>{URL.revokeObjectURL(url);reject(new Error('사진 열기 실패'));};img.src=url;});}
 function parseText(text){const lines=clean(text).split(/\r?\n/).map(s=>s.trim()).filter(Boolean);const email=text.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i)?.[0]||'';const phone=text.match(/(?:\+?82[\s.-]?)?0?1[016789][\s.-]?\d{3,4}[\s.-]?\d{4}|0\d{1,2}[\s.-]?\d{3,4}[\s.-]?\d{4}/)?.[0]||'';const filtered=lines.filter(l=>l!==email&&!l.includes(email||'@@')&&!l.includes(phone||'@@')&&!/^(?:www\.|https?:\/\/)/i.test(l));const name=filtered.find(x=>/^[가-힣]{2,5}$/.test(x))||filtered.find(x=>/^[A-Za-z ]{3,28}$/.test(x))||filtered[0]||'';const company=filtered.find(x=>x!==name&&/(주식회사|㈜|회사|그룹|법인|co\.|corp|inc\.|ltd|namda)/i.test(x))||'';return {name,company,phone,email,memo:'명함 인식 원문:\n'+text.slice(0,1200)};}
 async function scan(file){if(!file||busy)return;if(!file.type.startsWith('image/')){toast('이미지 파일을 선택해 주세요.');return;}if(file.size>15*1024*1024){toast('사진은 15MB 이하만 등록할 수 있습니다.');return;}busy=true;const button=$('cameraBtn');button.disabled=true;const status=$('ocrStatus');status.textContent='사진을 읽고 있습니다…';let compressed='';try{compressed=await photoToData(file);if(!window.Tesseract)throw new Error('OCR module missing');status.textContent='한국어·영어 문자를 인식하고 있습니다…';const worker=await Tesseract.createWorker('kor+eng');let result;try{result=await worker.recognize(file);}finally{await worker.terminate();}const parsed=parseText(result.data.text||'');if(!parsed.name||!result.data.text.trim())throw new Error('No recognizable text');const item={id:crypto.randomUUID(),name:parsed.name,company:parsed.company,title:'',phone:parsed.phone,email:parsed.email,memo:parsed.memo,photo:compressed};if(await storeItem(item,false)){resetForm();status.textContent='명함이 등록되었습니다.';toast('명함 인식 및 저장 완료 · 이름과 연락처를 확인해 주세요.');show('contacts');}}catch(e){console.error(e);status.textContent='자동 인식에 실패했습니다. 직접 입력하여 저장할 수 있습니다.';photoData=compressed;expandManual(true);toast('글자를 읽지 못했어요. 직접 입력해 주세요.');}finally{busy=false;button.disabled=false;$('photo').value='';}}
-$('cameraBtn').addEventListener('click',()=>$('photo').click());
-$('heroCamera').addEventListener('click',()=>{resetForm();show('register');$('photo').click();});
+function stopLiveScan(){
+ activeScan=false;
+ if(cameraStream){cameraStream.getTracks().forEach(t=>t.stop());cameraStream=null;}
+ $('liveVideo').srcObject=null;
+ $('liveCam').hidden=true;
+ $('cameraBtn').disabled=false;
+}
+async function startLiveScan(){
+ if(activeScan)return;
+ if(!navigator.mediaDevices?.getUserMedia){toast('실시간 카메라를 지원하지 않는 환경입니다. 사진 불러오기를 사용해 주세요.');return;}
+ show('register');
+ activeScan=true;$('cameraBtn').disabled=true;$('liveCam').hidden=false;
+ $('liveStatus').textContent='카메라 권한을 허용해 주세요.';
+ try{
+   cameraStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1280},height:{ideal:720}},audio:false});
+   if(!activeScan)return;
+   const video=$('liveVideo');video.srcObject=cameraStream;await video.play();
+   $('liveStatus').textContent='명함 전체를 초록색 틀 안에 놓고 흔들리지 않게 유지해 주세요.';
+   if(!window.Tesseract)throw new Error('문자 인식 모듈을 불러오지 못했습니다.');
+   const worker=await Tesseract.createWorker('kor+eng');liveWorker=worker;
+   const canvas=document.createElement('canvas');const ctx=canvas.getContext('2d');
+   let lastSignature='';let stable=0;
+   while(activeScan&&cameraStream){
+     if(video.readyState<2||!video.videoWidth){await new Promise(r=>setTimeout(r,350));continue;}
+     const w=video.videoWidth,h=video.videoHeight;
+     const cropW=Math.min(w*.87,h*1.65),cropH=cropW/1.76;
+     const sx=(w-cropW)/2,sy=(h-cropH)/2;
+     canvas.width=Math.max(1,Math.round(cropW));canvas.height=Math.max(1,Math.round(cropH));
+     ctx.drawImage(video,sx,sy,cropW,cropH,0,0,canvas.width,canvas.height);
+     $('liveStatus').textContent='명함 내용을 자동 인식하고 있습니다…';
+     const result=await worker.recognize(canvas);
+     if(!activeScan)break;
+     const parsed=parseText(result.data.text||'');
+     const confidence=Number(result.data.confidence)||0;
+     const valid=parsed.name&&(parsed.phone||parsed.email)&&confidence>=48;
+     const signature=parsed.phone||parsed.email;
+     if(valid){
+       if(signature===lastSignature)stable++;else{lastSignature=signature;stable=1;}
+       $('liveStatus').textContent='명함 확인 중… '+stable+'/2';
+       if(stable>=2){
+         const item={id:crypto.randomUUID(),name:parsed.name,company:parsed.company,title:'',phone:parsed.phone,email:parsed.email,memo:parsed.memo,photo:canvas.toDataURL('image/jpeg',.62)};
+         const stored=await storeItem(item,false);
+         stopLiveScan();
+         if(stored){toast('명함을 자동으로 읽어 저장했습니다. 정보를 확인해 주세요.');show('contacts');}
+         return;
+       }
+     }else{stable=0;lastSignature='';$('liveStatus').textContent='이름과 전화번호 또는 이메일이 보이도록 명함을 가까이 맞춰 주세요.';}
+     await new Promise(r=>setTimeout(r,650));
+   }
+ }catch(e){
+   console.error(e);
+   $('ocrStatus').textContent='카메라 자동 인식을 사용할 수 없습니다. 사진 불러오기로 등록해 주세요.';
+   toast('카메라 권한 또는 자동 인식 오류입니다. 사진 불러오기를 사용해 주세요.');
+ }finally{
+   stopLiveScan();
+   if(liveWorker){const worker=liveWorker;liveWorker=null;try{await worker.terminate();}catch{}}
+ }
+}
+$('cameraBtn').addEventListener('click',startLiveScan);
+$('heroCamera').addEventListener('click',()=>{resetForm();show('register');startLiveScan();});
+$('galleryBtn').addEventListener('click',()=>$('photo').click());
+$('stopLive').addEventListener('click',stopLiveScan);
 $('photo').addEventListener('change',e=>scan(e.target.files[0]));
 $('export').addEventListener('click',()=>download(JSON.stringify(records,null,2),'namda-cards-backup.json','application/json;charset=utf-8'));
 $('vcardAll').addEventListener('click',()=>{if(!records.length){toast('내보낼 명함이 없습니다.');return;}download(records.map(vcard).join('\r\n'),'namda-contacts.vcf','text/vcard;charset=utf-8');});
